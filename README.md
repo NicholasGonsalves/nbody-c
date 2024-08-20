@@ -15,3 +15,7 @@ gcc -o opengl_project nbody.c \
 ```
 
 `./opengl_project`
+
+
+https://github.com/user-attachments/assets/e9ae6fed-c8c4-4f8a-82b4-8c352c427647
+
