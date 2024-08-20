@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <math.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 struct Body {
     float x;
@@ -12,7 +14,7 @@ struct Body {
 };
 
 const int dt = 60 * 60 * 24;  // 1 day
-const float G = 6.67430 * 0.00000000001;
+const float G = 6.67430e-11; // Gravitational constant
 
 void update_velocity(struct Body* b) {
     b->vx += b->ax * dt;
@@ -27,6 +29,8 @@ void update_position(struct Body* b) {
 void update_acceleration_all_bodies(struct Body bodies[], int size) {
     for (int i = 0; i < size; i++) {
         // printf("Body %d\n", i);
+        bodies[i].ax = 0;
+        bodies[i].ay = 0;
         for (int j = 0; j < size; j++) { 
             if (i == j) { continue; }
             float dx = bodies[j].x - bodies[i].x;
@@ -48,18 +52,65 @@ void simulate(struct Body bodies[], int size) {
     }
 }
 
-void print_bodies(struct Body bodies[], int size) {
-    for (int i = 0; i < size; i++) {
-        printf("Body %d:\n", i);
-        printf("  Position: (%.2f, %.2f)\n", bodies[i].x, bodies[i].y);
-        printf("  Mass: %.2e\n", bodies[i].mass);
-        printf("  Velocity: (%.2f, %.2f)\n", bodies[i].vx, bodies[i].vy);
-        printf("  Acceleration: (%.2f, %.2f)\n", bodies[i].ax, bodies[i].ay);
-        printf("\n");
+void setupViewport(int width, int height) {
+    glViewport(0, 0, width, height);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0); // Set up orthographic projection
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+GLFWwindow* initOpenGL() {
+    if (!glfwInit()) {
+        fprintf(stderr, "Failed to initialize GLFW\n");
+        return NULL;
     }
+
+    GLFWwindow* window = glfwCreateWindow(800, 600, "N-Body", NULL, NULL);
+    if (!window) {
+        fprintf(stderr, "Failed to open GLFW window\n");
+        glfwTerminate();
+        return NULL;
+    }
+
+    glfwMakeContextCurrent(window);
+
+    if (glewInit() != GLEW_OK) {
+        fprintf(stderr, "Failed to initialize GLEW\n");
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return NULL;
+    }
+
+    setupViewport(800, 600);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set clear color to black
+    glEnable(GL_POINT_SMOOTH); // Enable point smoothing
+    glPointSize(5.0f); // Set point size
+
+    return window;
+}
+
+void renderBodies(struct Body bodies[], int size) {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glLoadIdentity(); // Load the identity matrix to reset transformations
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glBegin(GL_POINTS);
+    float scaling_factor = 1e13f;
+    for (int i = 0; i < size; i++) {
+        glVertex2f(bodies[i].x / scaling_factor, bodies[i].y / scaling_factor); // Scale down positions
+    }
+    glEnd();
+    glfwSwapBuffers(glfwGetCurrentContext());
 }
 
 int main() {
+    GLFWwindow* window = initOpenGL();
+    if (!window) return -1;
+
+    const int n = 10;
+
     struct Body sun = {0, 0, 1.989 * 10e30, 0, 0, 0, 0};
     struct Body mercury = {57.9e9, 0, 3.285 * 10e23, 0, 47.87e3, 0, 0};
     struct Body venus = {108.2e9, 0, 4.867 * 10e24, 0, 35.02e3, 0, 0};
@@ -71,13 +122,17 @@ int main() {
     struct Body neptune = {4.495e12, 0, 1.024 * 10e26, 0, 5.43e3, 0, 0};
     struct Body pluto = {5.906e12, 0, 1.309 * 10e22, 0, 4.74e3, 0, 0};
 
-    struct Body bodies[10] = {sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto};
+    struct Body bodies[n] = {sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto};
+    // struct Body bodies[n] = {sun, mercury, venus, earth, mars};
 
-    for (int i; i < 1000000; i++) {
-        simulate(bodies, 10);
+    while (!glfwWindowShouldClose(window)) {
+        simulate(bodies, n);
+        renderBodies(bodies, n);
+        glfwPollEvents();
     }
 
-    print_bodies(bodies, 10);
+    glfwDestroyWindow(window);
+    glfwTerminate();
    
    return 0;
 }
