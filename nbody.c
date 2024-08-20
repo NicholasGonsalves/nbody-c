@@ -97,7 +97,7 @@ void renderBodies(struct Body bodies[], int size) {
     glLoadIdentity(); // Load the identity matrix to reset transformations
     glColor3f(1.0f, 1.0f, 1.0f);
     glBegin(GL_POINTS);
-    float scaling_factor = 3e11f;
+    float scaling_factor = 1e12f;
     for (int i = 0; i < size; i++) {
         glVertex2f(bodies[i].x / scaling_factor, bodies[i].y / scaling_factor); // Scale down positions
     }
@@ -105,11 +105,22 @@ void renderBodies(struct Body bodies[], int size) {
     glfwSwapBuffers(glfwGetCurrentContext());
 }
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    setupViewport(width, height);
+}
+
 int main() {
     GLFWwindow* window = initOpenGL();
     if (!window) return -1;
 
-    const int n = 5;
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // Get initial window size and set up the viewport
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    setupViewport(width, height);
+
+    const int n = 10;
 
     struct Body sun = {0, 0, 1.989e30, 0, 0, 0, 0};
     struct Body mercury = {57.9e9, 0, 3.285e23, 0, 47.87e3, 0, 0};
@@ -122,8 +133,8 @@ int main() {
     struct Body neptune = {4.495e12, 0, 1.024e26, 0, 5.43e3, 0, 0};
     struct Body pluto = {5.906e12, 0, 1.309e22, 0, 4.74e3, 0, 0};
 
-    // struct Body bodies[n] = {sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto};
-    struct Body bodies[n] = {sun, mercury, venus, earth, mars};
+    struct Body bodies[n] = {sun, mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto};
+    // struct Body bodies[n] = {sun, mercury, venus, earth, mars};
 
     while (!glfwWindowShouldClose(window)) {
         simulate(bodies, n);
